@@ -1,0 +1,44 @@
+services:
+  mariadb:
+    image: mariadb:10.6
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: moodle
+      MYSQL_USER: moodleuser
+      MYSQL_PASSWORD: moodlepass
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  moodle:
+    image: bitnami/moodle:4.3
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      MOODLE_DATABASE_HOST: mariadb
+      MOODLE_DATABASE_PORT_NUMBER: 3306
+      MOODLE_DATABASE_USER: moodleuser
+      MOODLE_DATABASE_PASSWORD: moodlepass
+      MOODLE_DATABASE_NAME: moodle
+      MOODLE_USERNAME: admin
+      MOODLE_PASSWORD: Admin@123
+      MOODLE_EMAIL: admin@example.com
+      MOODLE_SITE_NAME: My Moodle
+    volumes:
+      - moodle_data:/bitnami/moodle
+      - moodle_moodledata:/bitnami/moodledata
+    ports:
+      - "8888:8080"
+      - "8443:443"
+
+volumes:
+  mariadb_data:
+  moodle_data:
+  moodle_moodledata:

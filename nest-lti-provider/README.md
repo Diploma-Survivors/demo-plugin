@@ -1,98 +1,109 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+## Cấu hình Environment Variables (.env)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Để chạy ứng dụng LTI Provider, bạn cần tạo file `.env` trong thư mục gốc của dự án với các biến môi trường sau:
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+### Cấu hình cơ sở dữ liệu
+```env
+# Tên cơ sở dữ liệu MongoDB
+DATABASE_NAME=lti_provider
 
-## Description
+# Tên đăng nhập MongoDB
+DATABASE_USERNAME=admin
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+# Mật khẩu MongoDB
+DATABASE_PASSWORD=admin
 
-## Project setup
+# Cổng kết nối MongoDB
+DATABASE_PORT=27017
 
-```bash
-$ pnpm install
+# URI kết nối MongoDB
+DATABASE_URI=mongodb://mongo:27017
 ```
 
-## Compile and run the project
+### Hướng dẫn thiết lập
 
-```bash
-# development
-$ pnpm run start
+## 1. **Kích hoạt các plugin cần thiết trong Moodle**
 
-# watch mode
-$ pnpm run start:dev
+- Truy cập vào Moodle (http://localhost:8888 => file /moodle/docker-compose.yaml expose moodle bằng port 8888 với giao thức http)
+- Với vai trò quản trị viên Moodle (tài khoản trong file /moodle/docker-compose.yaml), truy cập **Site administration > Plugins > Authentication > Manage authentication** và đảm bảo **LTI authentication plugin** đã được kích hoạt.
+- Quan trọng nhất để kết nối với LTI provider bên ngoài, truy cập **Site administration > Plugins > Activity modules > External tool > Manage tools** và đảm bảo plugin này đã được kích hoạt để thêm các công cụ LTI như các hoạt động.
 
-# production mode
-$ pnpm run start:prod
+## 2. **Thêm và cấu hình External LTI Tool trong Moodle**
+
+- Điều hướng đến **Site administration > Plugins > Activity modules > External tool > Manage tools**.
+- Nhấp vào **Configure a tool manually** hoặc **Add LTI Advantage**.
+- Nhập thông tin sau từ LTI provider của bạn (công cụ bên ngoài mà bạn muốn kết nối):
+    - **Tool name:** Tên cho công cụ (hiển thị cho người tạo khóa học).
+    - **Tool URL:** URL khởi chạy của LTI provider (http://localhost:3000).
+    - **LTI version:** Chọn **LTI 1.3** (chưa rõ Moodle có version nào nên test thử đã).
+    - **Public key type:** chọn **Keyset URL**.
+    - **Public keyset URL:** URL JWKS từ LTI provider (http://localhost:3000/lti/keys). Để Moodle xác minh JWT từ LTI Provider
+    - **Initiate login URL:** URL đăng nhập được cung cấp bởi LTI provider.
+    - **Redirection URL:** URL chuyển hướng sau khi đăng nhập, từ provider.
+- Cấu hình các thiết lập bổ sung như (bật full hết để test đã):
+    - Kích hoạt **Deep Linking (Content-Item Message)** nếu được hỗ trợ để lựa chọn nội dung.
+    - Cài đặt quyền riêng tư (ví dụ: chia sẻ tên/email người khởi chạy, chấp nhận điểm số).
+    - Tùy chọn sử dụng cấu hình công cụ (ví dụ: hiển thị trong activity chooser).
+    - Đánh dấu **Force SSL** nếu trang web của bạn sử dụng HTTPS.
+
+## 3. **Lấy thông tin cấu hình từ Moodle**
+
+Sau khi thiết lập Moodle xong, tại `http://localhost:8888/mod/lti/toolconfigure.php` bấm vào LTI Provider vừa tạo (cái icon details ấy - 3 dấu chấm rồi 3 gạch ngang), nó sẽ hiển thị thông tin có dạng như sau:
+
+```
+Platform ID: http://localhost:8888
+Client ID: DUInSyShV52fzQr
+Deployment ID: 1
+Public keyset URL: http://localhost:8888/mod/lti/certs.php
+Access token URL: http://localhost:8888/mod/lti/token.php
+Authentication request URL: http://localhost:8888/mod/lti/auth.php
 ```
 
-## Run tests
+## 4. **Cấu hình file .env**
 
-```bash
-# unit tests
-$ pnpm run test
+Từ những thông tin trên, cập nhật phần cấu hình tích hợp với Moodle trong file `.env`:
 
-# e2e tests
-$ pnpm run test:e2e
+```env
+# Cổng chạy ứng dụng
+PORT=3000
 
-# test coverage
-$ pnpm run test:cov
+# URL endpoint cho LTI key (Public keyset lúc điền thông tin tạo external tool đó)
+LTI_KEY=http://localhost:3000/lti/keys
+
+# Tên của LTI provider (lúc điền thông tin tạo external tool)
+LTI_NAME=TQTos-Provider
+
+# URL của platform Moodle (Platform ID)
+LTI_PLATFORM_URL=http://localhost:8888
+
+# Client ID được Moodle sử dụng để nhận diện LTI provider
+LTI_CLIENT_ID=DUInSyShV52fzQr
+
+# URL chứa public keyset (JWKS) của Moodle để xác thực JWT
+LTI_PUBLIC_KEYSET_URL=http://localhost:8888/mod/lti/certs.php
+
+# URL để LTI Provider lấy access token OAuth 2.0 từ Moodle
+LTI_ACCESS_TOKEN_URL=http://localhost:8888/mod/lti/token.php
+
+# URL để bắt đầu quá trình xác thực với Moodle
+LTI_AUTHENTICATION_URL=http://localhost:8888/mod/lti/auth.php
 ```
 
-## Deployment
+## 5. **Chạy ứng dụng**
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+1. Mở terminal và chuyển đến thư mục `nest-lti-provider`:
+   ```bash
+   cd nest-lti-provider
+   ```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+2. Khởi chạy ứng dụng bằng Docker:
+   ```bash
+   docker-compose up -d
+   ```
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+3. Sau khi chạy xong, kiểm tra ứng dụng bằng cách truy cập:
+   ```
+   http://localhost:3000/lti/ping
+   ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+**Lưu ý:** Đảm bảo rằng cả Moodle (port 8888) và MongoDB đã được khởi chạy trước khi chạy LTI Provider.
